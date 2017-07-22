@@ -1,9 +1,37 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const config = require('./config.json');
 const gamedig = require('gamedig');
-const fs = require('fs');
 const cron = require('cron');
+var fs = require('fs');
+
+try {
+    var config = require('./config.json');
+}catch(e){
+    console.log("Missing or unfilled values in config.json!\nWritting correct config.json...");
+
+    var tempConfig = {
+        "token": "",
+        "prefix": "",
+        "ownerID": "",
+        "discordServers": [
+            {
+                "id": 0,
+                "name": "",
+                "servers": [
+                    {
+                        "name" : "server name",
+                        "ip": "1.1.1.1",
+                        "game": "game"
+                    }
+                ]
+            }
+        ]
+    };
+
+    fs.writeFileSync('./config.json', JSON.stringify(tempConfig, null, 4), (err) => {console.log(err)});
+
+ 	process.exit(0);
+ } 
 
 console.log("Querying servers...");
 
@@ -41,10 +69,10 @@ var cronJob = cron.job("* * * * *", function(){
                 type: server.game,
                 host: server.ip
             }).then((state) => {
-                console.log(`Server ${server.ip} (${server.name}) is online`);
+                console.log(`${server.ip} (${server.name}) is online for Discord ${discordServer.name}`);
                 serverstat = state;
             }).catch((error) => {
-                console.log(`Server ${server.ip} (${server.name}) is offine`);
+                console.log(`${server.ip} (${server.name}) is offine for Discord ${discordServer.name}`);
             });
         });
 });
