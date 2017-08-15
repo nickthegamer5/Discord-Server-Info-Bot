@@ -50,13 +50,17 @@ config.discordServers.forEach(function(discordServer, i) {
         }).then((state) => {
             console.log(`Server ${server.ip} (${server.name}) is online. Discord server: ${discordServer.id} (${discordServer.name})`);
             serverstat = state;
+			console.log(state);
         }).catch((error) => {
             console.log(`Server ${server.ip} (${server.name}) is offine. Discord server: ${discordServer.id} (${discordServer.name})`);
         });
     });
 });
 
-
+client.login(config.token);
+client.on('ready', () => {
+    console.log('I am ready!');
+});
 
 var cronJob = cron.job("* * * * *", function(){
     config.discordServers.forEach(function(discordServer, i) {
@@ -67,6 +71,7 @@ var cronJob = cron.job("* * * * *", function(){
         discordServer.servers.forEach(function(server, o) {
             Gamedig.query({
                 type: server.game,
+				port: server.port,
                 host: server.ip
             }).then((state) => {
                 console.log(`${server.ip} (${server.name}) is online for Discord ${discordServer.name}`);
@@ -75,14 +80,9 @@ var cronJob = cron.job("* * * * *", function(){
                 console.log(`${server.ip} (${server.name}) is offine for Discord ${discordServer.name}`);
             });
         });
-});
+	});
 }); 
 cronJob.start();
-
-client.login(config.token);
-client.on('ready', () => {
-    console.log('I am ready!');
-});
 
 client.on('message', (message) => {
 
@@ -96,49 +96,22 @@ client.on('message', (message) => {
     }
     
     if (message.content.startsWith(config.prefix + 'server')) {
-        playerlist = "";
-        serverstat.players.forEach(function(player) {
-            playerlist = playerlist + player.name + "\n"
-        }, this);
-
-        message.channel.send(
-            {
-                "embed": {
-                    "title": "Server Info Bot",
-                    "description": "Info for server [" + serverstat.name +"](steam://connect/"+serverstat.query.host+":" + serverstat.query.port +")",
-                    "color": 1113126,
-                    "fields": [
-                        {
-                            "name": "Players",
-                        
-                            "value": "```" + playerlist + "```"
-                        }
-                    ]
-                }
-            });
+        const embed = new Discord.RichEmbed()
+		.setDescription("[" + serverstat.name +"](steam://connect/"+serverstat.query.host+":" + serverstat.query.port +")")
+		.addField("IP", serverstat.query.host, true)
+		.addField("Gamemode", serverstat.raw.game, true)
+		.addField("Map", serverstat.map, true)
+		.addField("Players", serverstat.players.length + "/" + serverstat.maxplayers, true);
+		
+        message.channel.send({embed});
     }
 
     if (message.content.startsWith(config.prefix + 'info')) {
-        message.channel.send(
-        {
-            "embed": {
-                "title": "Server Info Bot Statistics",
-                "fields": [{
-                    "name": "Mem Usage",
-                    "value": ((process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)) + " MB",
-                    "inline": true
-                }, {
-                    "name": "Discord.js",
-                    "value": "v" + Discord.version,
-                    "inline": true
-                }],
-                "footer": {
-                    "text": "created by nickthegamer5",
-                    "icon_url": "https://cdn.discordapp.com/avatars/177939422468243457/3ce778d29d1fc247aa30af136536d737.png?size=2048"
-                }
-            }
-        }
-        );
+		const embed = new Discord.RichEmbed()
+		.setTitle("Server Info Bot Statistics")
+		.addField("Memory Usage", ((process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)) + " MB", true)
+		.addField("Discord.js","v" + Discord.version,true)
+		.setFooter("created by nickthegamer5","https://cdn.discordapp.com/avatars/177939422468243457/55dda02364bf2d5d710126b6b1b972e1.jpg?size=128");
+        message.channel.send({embed});
     }
 });
-
